@@ -9,6 +9,29 @@
 		<string>settings_rlv.xml</string>
 	</array>
     
+  <key>ZwagothSculptSAThresh</key>
+  <map>
+    <key>Comment</key>
+    <string>Surface area at which sculpts are considered for not being rendered.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>F32</string>
+    <key>Value</key>
+    <integer>1750.0</integer>
+  </map>
+  <key>ZwagothSculptSAMax</key>
+  <map>
+    <key>Comment</key>
+    <string>The maximum combined surface area of sculpts(per frame) that are above the threshold before they stop being rendered.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>F32</string>
+    <key>Value</key>
+    <integer>50000.0</integer>
+  </map>
+
   <key>AllowLargeSounds</key>
     <map>
     <key>Comment</key>
