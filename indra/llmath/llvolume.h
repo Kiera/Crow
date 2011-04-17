@@ -946,7 +946,7 @@ public:
 
 	U32					mFaceMask;			// bit array of which faces exist in this volume
 	LLVector3			mLODScaleBias;		// vector for biasing LOD based on scale
-	
+	F32					mSculptSurfaceArea; // last generated sculpt surface area
 	void sculpt(U16 sculpt_width, U16 sculpt_height, S8 sculpt_components, const U8* sculpt_data, S32 sculpt_level);
 private:
 	void sculptGenerateMapVertices(U16 sculpt_width, U16 sculpt_height, S8 sculpt_components, const U8* sculpt_data, U8 sculpt_type);

@@ -2357,6 +2357,23 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 
 		LLVOVolume* vobj = drawablep->getVOVolume();
 		llassert_always(vobj);
+
+		if(drawablep->getVOVolume()->isSculpted() && drawablep->getVOVolume()->getVolume())
+		{
+			static const LLCachedControl<F32> sSculptSurfaceAreaThreshold("ZwagothSculptSAThresh",1750.0);
+			static const LLCachedControl<F32> sSculptSurfaceAreaMax("ZwagothSculptSAMax",50000.f);
+			if(sSculptSurfaceAreaThreshold > 0.f && sSculptSurfaceAreaMax > 0.f)
+			{
+				F32 surface_area = drawablep->getVOVolume()->getVolume()->mSculptSurfaceArea;
+				if (surface_area > sSculptSurfaceAreaThreshold)
+				{
+					if(LLPipeline::sVolumeSAFrame + surface_area > sSculptSurfaceAreaMax)
+						continue;
+					else
+						LLPipeline::sVolumeSAFrame += surface_area;
+				}
+			}
+		}
 		vobj->updateTextureVirtualSize();
 		vobj->preRebuild();
 

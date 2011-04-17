@@ -1665,7 +1665,8 @@ LLProfile::~LLProfile()
 S32 LLVolume::sNumMeshPoints = 0;
 
 LLVolume::LLVolume(const LLVolumeParams &params, const F32 detail, const BOOL generate_single_face, const BOOL is_unique)
-	: mParams(params)
+	: mParams(params),
+	mSculptSurfaceArea(0)
 {
 	LLMemType m1(LLMemType::MTYPE_VOLUME);
 	
@@ -2276,6 +2277,8 @@ void LLVolume::sculpt(U16 sculpt_width, U16 sculpt_height, S8 sculpt_components,
 	mVolumeFaces.clear();
 	
 	createVolumeFaces();
+
+	mSculptSurfaceArea = sculptGetSurfaceArea();
 }
 
 

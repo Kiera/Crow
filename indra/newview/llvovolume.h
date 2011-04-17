@@ -244,6 +244,7 @@ private:
 	LLVolumeInterface *mVolumeImpl;
 	LLPointer<LLViewerFetchedTexture> mSculptTexture;
 	S32 mIndexInTex;
+	F32			mVolumeSurfaceArea; // sculptcrash
 	
 	// statics
 public:
