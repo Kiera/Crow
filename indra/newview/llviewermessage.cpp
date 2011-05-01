@@ -174,6 +174,10 @@
 extern LLMap< const LLUUID, LLFloaterAvatarInfo* > gAvatarInfoInstances; // Only defined in llfloateravatarinfo.cpp
 // [/RLVa:KB]
 
+// [$PLOTR$]
+#include "otr_wrapper.h"
+#include "a_phoenixviewerlink.h"
+// [/$PLOTR$]
 //
 // Constants
 //
@@ -1718,18 +1722,117 @@ void process_improved_im(LLMessageSystem *msg, void **user_data)
 
 	LLViewerObject *source = gObjectList.findObject(session_id); //Session ID is probably the wrong thing.
 	if (source)
+	U32 otrpref = gSavedSettings.getU32("PhoenixUseOTR");
+    // otrpref: 0 == Require use of OTR in IMs, 1 == Request OTR if available, 2 == Accept OTR requests, 3 == Decline use of OTR
+	if ((otrpref != 3) && !is_muted && (chat.mSourceType == CHAT_SOURCE_AGENT))
 	{
-		is_owned_by_me = source->permYouOwner();
+		int ignore_message = 0;
+		char *newmessage = NULL;
+		OtrlTLV *tlvs = NULL;
+		char my_uuid[UUID_STR_SIZE];
+		char their_uuid[UUID_STR_SIZE];
+
+        if (gOTR &&
+            ((IM_NOTHING_SPECIAL == dialog) ||
+             ((IM_TYPING_STOP == dialog) &&
+              (! ((message == "typing") || (message == "cryo::ping"))))))
+		{
+			// only try OTR for 1 on 1 IM's or special tagged typing_stop packets
+			gAgent.getID().toString(&(my_uuid[0]));
+			from_id.toString(&(their_uuid[0]));
+			ignore_message = otrl_message_receiving(
+				gOTR->get_userstate(),
+				gOTR->get_uistate(),
+				&session_id,
+				my_uuid,
+				gOTR->get_protocolid(),
+				their_uuid,
+				&(message[0]), &newmessage,
+				&tlvs,
+				NULL, NULL);
+		}
+		if (tlvs)
+		{
+			llinfos << "$PLOTR$ recieved TLVs" << llendl;
+			LLUUID session = LLIMMgr::computeSessionID(dialog,from_id);
+
+			if(!otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED))
+			{
+				// currently the only TLVs we deal with are SMP, and they require an IM panel
+				if(!gIMMgr->hasSession(session))
+				{
+					gIMMgr->addSession(name,IM_NOTHING_SPECIAL,from_id);
+				}
+
+			}
+			LLFloaterIMPanel* pan = gIMMgr->findFloaterBySession(session);
+			if (pan) pan->handleOtrTlvs(tlvs);
+			otrl_tlv_free(tlvs);
+		}
+		if (1 == ignore_message)
+		{
+            OtrlMessageType msgtype = otrl_proto_message_type(&(message[0]));
+            if (OTRL_MSGTYPE_NOTOTR == msgtype)
+            {
+                llinfos << "$PLOTR$ [not otr, but to be ignored (" << message << ")]" << llendl;
+                if ((0 == otrpref) && (IM_NOTHING_SPECIAL == dialog) && !is_muted)
+                {
+                    LLUUID session = LLIMMgr::computeSessionID(dialog,from_id);
+                    if(!gIMMgr->hasSession(session))
+                    {
+                        gIMMgr->addSession(name,IM_NOTHING_SPECIAL,from_id);
+                    }
+                    // NOT deliver_otr_message since those might go via typing_stop
+                    deliver_message(  // $TODO$ move the following message to some .xml file
+                        "/me's settings require OTR encrypted instant messages. Your message was not displayed.",
+                        session, from_id, IM_NOTHING_SPECIAL);
+                    LLFloaterIMPanel* pan = gIMMgr->findFloaterBySession(session);
+                    if(pan)pan->doOtrStart();
+                }
+            }
+            else
+            {
+                // an internal OTR protocol message was recieved, don't show anything to the user
+                llinfos << "$PLOTR$ [OTR PROTOCOL MESSAGE (" << message << ")]" << llendl;
+            }
+            otr_show_status(session_id);
+			return;
+		}
+		if (newmessage)
+		{
+            // message was processed by OTR.  Maybe decrypted, maybe just stripping off the
+            // white-space "I have OTR" tag
+			decrypted_msg = newmessage;  // use processed message
+			message = newmessage;        // use processed message
+			otrl_message_free(newmessage);
+			ConnContext *context = otrl_context_find(
+				gOTR->get_userstate(),
+				their_uuid,
+				my_uuid,
+				gOTR->get_protocolid(),
+				0, NULL, NULL, NULL);
+			encrypted = (context && (OTRL_MSGSTATE_ENCRYPTED == context->msgstate));
+            if (IM_TYPING_STOP == dialog)
+            {
+                if ("typing" == message) return; // don't display whitespace tagged "typing" stop messages
+                dialog = IM_NOTHING_SPECIAL;     // display messages received in typing_stop packets
+            }
+		}
 	}
 
 	std::string separator_string(": ");
 	int message_offset = 0;
 
+	if(encrypted)
+	{
+		separator_string = "\xe2\x80\xa7: ";
+		message = decrypted_msg;
+	}
 		//Handle IRC styled /me messages.
 	std::string prefix = message.substr(0, 4);
 	if (prefix == "/me " || prefix == "/me'")
 	{
-		separator_string = "";
+		separator_string = encrypted ? "\xe2\x80\xa7" : "";
 		message_offset = 3;
 	}
 
