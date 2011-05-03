@@ -38,6 +38,9 @@ include(LLKDU)
 include(ViewerMiscLibs)
 include(ViewerArtwork.cmake)
 
+include(libotr)
+include(libgcrypt)
+include(libgpg-error)
 if (WINDOWS)
     include(CopyWinLibs)
 endif (WINDOWS)
@@ -63,6 +66,7 @@ include_directories(
     ${LLXML_INCLUDE_DIRS}
     ${LSCRIPT_INCLUDE_DIRS}
     ${LSCRIPT_INCLUDE_DIRS}/lscript_compile
+    ${LIBOTR_INCLUDE_DIRS}
     )
 
 set(viewer_SOURCE_FILES
@@ -94,7 +98,9 @@ set(viewer_SOURCE_FILES
     hipporestrequest.cpp
     hippopanelgrids.cpp
     jcfloaterareasearch.cpp
-    chatbar_as_cmdline.cpp
+	otr_wrapper.cpp
+    otr_floater_smp_dialog.cpp
+    otr_floater_smp_progress.cpp
     qtoolalign.cpp
     llagent.cpp
     llagentaccess.cpp
@@ -567,6 +573,9 @@ set(viewer_HEADER_FILES
     lggdicdownload.h
     lgghunspell_wrapper.h
     chatbar_as_cmdline.h
+	otr_wrapper.h
+    otr_floater_smp_dialog.h
+    otr_floater_smp_progress.h
     qtoolalign.h
     llagent.h
     llagentaccess.h
@@ -1447,9 +1456,16 @@ target_link_libraries(${VIEWER_BINARY_NAME}
     ${WINDOWS_LIBRARIES}
     ${XMLRPCEPI_LIBRARIES}
     ${ELFIO_LIBRARIES}
+    ${LIBOTR_LIBRARIES}
     ${HUNSPELL_LIBRARY}
     )
 
+if (WINDOWS)
+  target_link_libraries(${VIEWER_BINARY_NAME}
+    ${LIBGPG_ERROR_LIBRARIES}
+    ${LIBGCRYPT_LIBRARIES}
+    )
+endif (WINDOWS)
 if (LINUX)
   add_custom_command(
       OUTPUT secondlife-stripped

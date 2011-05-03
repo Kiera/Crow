@@ -8,6 +8,7 @@ include(libgpg-error)
 include_directories(
     ${LIBGPG_ERROR_INCLUDE_DIRS}
     ${LIBGCRYPT_INCLUDE_DIRS}
+    ../libgpg-error
     )
 
 set(libotr_SOURCE_FILES
